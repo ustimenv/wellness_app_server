@@ -1,2 +1,2 @@
-# wellness_app_server
+# Wellness App Server
 Server side for the stress self-management app
