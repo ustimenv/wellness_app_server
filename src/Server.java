@@ -38,25 +38,30 @@ public class Server
 				int flag = Character.getNumericValue(input.charAt(0));
 				PacketSender ms;//the actual response message is crafted during the database operation
 				//TODO implement actual operations
-				switch (flag)
-				{
-					case 1:
-						ms = x.executeOperation(new LoginOperation(input, receivingSocket.getInetAddress()));
-						break;
-					case 2:
-						ms  = x.executeOperation(new RegistrationOperation(input, receivingSocket.getInetAddress()));
-						break;
-					case 5:
-						ms = x.executeOperation(new ReceiveMessageOperation(input, receivingSocket.getInetAddress()));
-						break;
-					default:
-						System.out.println("What is " + flag);
-						ms = new PacketSender(InetAddress.getByName("127.0.0.1"),"error");
-				}
-				if(ms.needsSending)
-				{
-					ms.send();
-				}
+				
+				System.out.println("RECEIVED "+input);
+				ms = x.executeOperation(new RegistrationOperation(input, receivingSocket.getInetAddress()));
+				ms.send();
+				System.out.println("SENT");
+//				switch (flag)
+//				{
+//					case 1:
+//						ms = x.executeOperation(new LoginOperation(input, receivingSocket.getInetAddress()));
+//						break;
+//					case 2:
+//						ms  = x.executeOperation(new RegistrationOperation(input, receivingSocket.getInetAddress()));
+//						break;
+//					case 5:
+//						ms = x.executeOperation(new ReceiveMessageOperation(input, receivingSocket.getInetAddress()));
+//						break;
+//					default:
+//						System.out.println("What is " + flag);
+//						ms = new PacketSender(InetAddress.getByName("127.0.0.1"),"error");
+//				}
+//				if(ms.needsSending)
+//				{
+//					ms.send();
+//				}
 				
 			}catch(Exception e){ e.printStackTrace();}
 		}
