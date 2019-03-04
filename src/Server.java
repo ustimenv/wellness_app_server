@@ -33,15 +33,24 @@ public class Server
 				System.out.println(receivingSocket.getInetAddress() + " " + receivingSocket.getLocalAddress() + " " + receivingSocket.getPort() + " " + receivingSocket .getLocalPort());
 				Thread.sleep(1000);									//DEBUG ONLY, emulate network latency
 				
-				System.out.println("Received");
-				String input = bufferedReaderToString( new BufferedReader(new InputStreamReader(receivingSocket.getInputStream())));
-				int flag = Character.getNumericValue(input.charAt(0));
-				PacketSender ms;//the actual response message is crafted during the database operation
+				InputStreamReader isr = new InputStreamReader(receivingSocket.getInputStream());
+				BufferedReader reader = new BufferedReader(isr);
+				String line = reader.readLine();
+				while (!line.isEmpty()) {
+					System.out.println(line);
+				line = reader.readLine(); }
+				
+				
+//				String input = bufferedReaderToString( new BufferedReader(new InputStreamReader(receivingSocket.getInputStream())));
+//				System.out.println("Received<" + input+">");
+				
+//				int flag = Character.getNumericValue(input.charAt(0));
+//				PacketSender ms;//the actual response message is crafted during the database operation
 				//TODO implement actual operations
 				
-				System.out.println("RECEIVED "+input);
-				ms = x.executeOperation(new RegistrationOperation(input, receivingSocket.getInetAddress()));
-				ms.send();
+//				System.out.println("RECEIVED "+input);
+//				ms = x.executeOperation(new RegistrationOperation(input, receivingSocket.getInetAddress()));
+//				ms.send();
 				System.out.println("SENT");
 //				switch (flag)
 //				{
