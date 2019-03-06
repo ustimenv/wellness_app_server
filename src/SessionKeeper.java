@@ -123,4 +123,8 @@ public enum SessionKeeper
 		}
 		return ms;
 	}
+	public PacketSender receivePacket(String input, InetAddress from)//for debugging, a basic echo operation
+	{
+		return  new PacketSender(from, input);
+	}
 }

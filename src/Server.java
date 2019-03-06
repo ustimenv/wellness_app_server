@@ -1,6 +1,9 @@
 
 import java.io.*;
 import java.net.*;
+import java.nio.BufferOverflowException;
+import java.sql.SQLSyntaxErrorException;
+import java.util.stream.Stream;
 
 public class Server
 {
@@ -30,27 +33,34 @@ public class Server
 			{
 				System.out.println("Awaiting input");
 				receivingSocket = serverSocket.accept();
+//				receivingSocket.setTcpNoDelay(true);
 				System.out.println(receivingSocket.getInetAddress() + " " + receivingSocket.getLocalAddress() + " " + receivingSocket.getPort() + " " + receivingSocket .getLocalPort());
 				Thread.sleep(1000);									//DEBUG ONLY, emulate network latency
+				////////////
+				InputStream is = receivingSocket.getInputStream();
+				InputStreamReader isr = new InputStreamReader(is);
+				BufferedReader br = new BufferedReader(isr);
 				
-				InputStreamReader isr = new InputStreamReader(receivingSocket.getInputStream());
-				BufferedReader reader = new BufferedReader(isr);
-				String line = reader.readLine();
-				while (!line.isEmpty()) {
-					System.out.println(line);
-				line = reader.readLine(); }
+//				StringBuilder sb = new StringBuilder();
+				int c=0;
+				System.out.println("YEEET");
+				while((c = br.read()) != '0')
+				{
+					System.out.print((char)c);
+//					sb.append((char)c);
+				}
+				System.out.println("|||||");
 				
-				
-//				String input = bufferedReaderToString( new BufferedReader(new InputStreamReader(receivingSocket.getInputStream())));
-//				System.out.println("Received<" + input+">");
-				
+				///////////
+//				System.out.println("Received<" + sb.toString()+">");
+//
 //				int flag = Character.getNumericValue(input.charAt(0));
-//				PacketSender ms;//the actual response message is crafted during the database operation
+				PacketSender ms;//the actual response message is crafted during the database operation
 				//TODO implement actual operations
 				
 //				System.out.println("RECEIVED "+input);
-//				ms = x.executeOperation(new RegistrationOperation(input, receivingSocket.getInetAddress()));
-//				ms.send();
+				ms = x.executeOperation(new EchoMessageOperation("WOOOHOO", InetAddress.getByName("10.94.199.65")));
+				ms.send();
 				System.out.println("SENT");
 //				switch (flag)
 //				{
@@ -81,10 +91,13 @@ public class Server
 		int c;
 		while((c=br.read()) != -1)
 		{
+			System.out.print((char)c);
 			sb.append((char)c);
 		}
 		return sb.toString();
 	}
+	
+	
 	public static void main(String[] args)
 	{
 		Server server = new Server();

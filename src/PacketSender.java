@@ -29,6 +29,7 @@ public class PacketSender
 		try(Socket sendingSocket = new Socket(recipientAddress, 8080);
 				PrintWriter os = new PrintWriter(new BufferedWriter(new OutputStreamWriter(sendingSocket.getOutputStream()))))
 		{
+			System.out.println("Sending");
 			os.write(payload);
 			os.flush();
 		}catch(Exception e){e.printStackTrace();}

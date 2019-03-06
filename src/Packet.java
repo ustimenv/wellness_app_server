@@ -22,7 +22,15 @@ public class Packet
         recipientName = st.nextToken();
         messageText = st.nextToken();
     }
-
+    public Packet()     //todo delete this
+    {
+        senderID=0;
+        recipientID=0;
+        senderName="Collin";
+        creationDate=new Date(22);
+        recipientName="Potatoman";
+        messageText="is nigh";
+    }
     private static String dateToString(Date date) {
         return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(date);
     }
