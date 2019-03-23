@@ -1,9 +1,5 @@
-
 import java.io.*;
 import java.net.*;
-import java.nio.BufferOverflowException;
-import java.sql.SQLSyntaxErrorException;
-import java.util.stream.Stream;
 
 public class Server
 {
@@ -27,13 +23,13 @@ public class Server
 	private void listen()
 	{
 		ClientOperationsExecutor x = new ClientOperationsExecutor();
-		while(true)
+		try
 		{
-			try
+			receivingSocket = serverSocket.accept();
+			receivingSocket.setTcpNoDelay(true);
+			while(true)
 			{
 				System.out.println("Awaiting input");
-				receivingSocket = serverSocket.accept();
-//				receivingSocket.setTcpNoDelay(true);
 				System.out.println(receivingSocket.getInetAddress() + " " + receivingSocket.getLocalAddress() + " " + receivingSocket.getPort() + " " + receivingSocket .getLocalPort());
 				Thread.sleep(1000);									//DEBUG ONLY, emulate network latency
 				////////////
@@ -41,25 +37,15 @@ public class Server
 				InputStreamReader isr = new InputStreamReader(is);
 				BufferedReader br = new BufferedReader(isr);
 				
-//				StringBuilder sb = new StringBuilder();
-				int c=0;
-				System.out.println("YEEET");
-				while((c = br.read()) != '0')
-				{
-					System.out.print((char)c);
-//					sb.append((char)c);
-				}
-				System.out.println("|||||");
-				
-				///////////
-//				System.out.println("Received<" + sb.toString()+">");
-//
+				String input = bufferedReaderToString(br);
+				if(!input.isEmpty())
+					System.out.println(input);
 //				int flag = Character.getNumericValue(input.charAt(0));
 				PacketSender ms;//the actual response message is crafted during the database operation
+
 				//TODO implement actual operations
 				
-//				System.out.println("RECEIVED "+input);
-				ms = x.executeOperation(new EchoMessageOperation("WOOOHOO", InetAddress.getByName("10.94.199.65")));
+				ms = x.executeOperation(new EchoMessageOperation("WOOOHOO", InetAddress.getByName("10.53.142.162")));
 				ms.send();
 				System.out.println("SENT");
 //				switch (flag)
@@ -82,21 +68,35 @@ public class Server
 //					ms.send();
 //				}
 				
-			}catch(Exception e){ e.printStackTrace();}
+			}
+		}catch(Exception e)
+		{
+			e.printStackTrace();
 		}
 	}
-	private static String bufferedReaderToString(BufferedReader br) throws Exception
+	private static String bufferedReaderToString(BufferedReader br) throws IOException
 	{
 		StringBuilder sb = new StringBuilder();
 		int c;
-		while((c=br.read()) != -1)
+		while((c=br.read()) != -1 && c!='~')
 		{
-			System.out.print((char)c);
 			sb.append((char)c);
 		}
+		System.out.println("&&");
 		return sb.toString();
 	}
-	
+	private static String foobar(InputStream inputStream)  throws IOException
+	{
+		ByteArrayOutputStream result = new ByteArrayOutputStream();
+		byte[] buffer = new byte[1024];
+		int length;
+		if(inputStream.available()==0)
+		while ((length = inputStream.read(buffer)) != -1) {
+			result.write(buffer, 0, length);
+		}
+		System.out.println("WOOW");
+		return result.toString("UTF-8");
+	}
 	
 	public static void main(String[] args)
 	{

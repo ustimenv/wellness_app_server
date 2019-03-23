@@ -7,124 +7,140 @@ import java.util.concurrent.ConcurrentHashMap;
 public enum SessionKeeper
 {
 	INSTANCE;
-	private String LOGIN_ACK = "1";
-	private String LOGIN_NAK = "2";
-	private String REGISTRATION_ACK = "3";
-	private String REGISTRATION_NAK = "4";
-	private String MESSAGE_FLAG = "5";
-	
-	private Map<Integer, InetAddress> routingTable = new ConcurrentHashMap<>();
-	private Map<String, Integer> nameMappings = new ConcurrentHashMap<>();
-	private static String DELIMITER = "#";
-	
 	static Database database = new Database();
+	
+	final String REGISTRATION_ACK  = Integer.toString(1);
+	final String REGISTRATION_NAK  = Integer.toString(2);
+	final String LOGIN_ACK 		   = Integer.toString(3);
+	final String LOGIN_NAK 		   = Integer.toString(4);
+	
+	final String DATA_RECEIVED_ACK = Integer.toString(5);
+	final String INTERNAL_ERROR    = Integer.toString(6);
+
+	final String FRIEND_REQ		   = Integer.toString(7);
+	final String FRIEND_ACK    	   = Integer.toString(8);
+	final String FRIEND_NAK    	   = Integer.toString(9);
+	final String FRIEND_DEL        = Integer.toString(10);
+	
+	final String DELIMITER		   = Integer.toString(13);
+	
+	PacketSender FAILSAFE_PACKET;
 	
 	public void init()
 	{
-		// database.initTest();
-	}
-	
-	public void addClient(String name, int clientID, String IP)
-	{
-		try
-		{
-			addClient(name, clientID, InetAddress.getByName(IP));
-		}catch(UnknownHostException e){System.out.println("Unable to resolve" + IP);}
-	}
-	
-	public void addClient(String name, int clientID, InetAddress associatedIP)
-	{
-		routingTable.put((int) clientID, associatedIP);
-		nameMappings.put(name, (int) clientID);
-	}
-	
-	public InetAddress getAddress(String name)
-	{
-		Integer x = nameMappings.get(name);
-		if(x!=null)
-		{
-			return getAddress(x);
-		}
-		return null;
-	}
-	
-	public InetAddress getAddress(int clientID)
-	{
-		return routingTable.get((int)clientID);
+		//TODO strictly for debugging
+		database.init();
+		FAILSAFE_PACKET = new PacketSender(null, INTERNAL_ERROR);
 	}
 	
 	
 	public PacketSender login(String input, InetAddress from)
 	{
-		
-		StringTokenizer st = new StringTokenizer(input, DELIMITER);
-		String tmp  = st.nextToken();					//skip flag
-		String username = st.nextToken();
-		String password = st.nextToken();
-		System.out.println(input);
-		int clientID = Integer.valueOf(st.nextToken());
-		Integer expectedPasswordHash = database.getPasswordHash(username, clientID);
-		
-		if(expectedPasswordHash == null)		//if the user does not exist
+		try
 		{
-			System.out.println("BOOm");
-			return new PacketSender(from, LOGIN_NAK, "9");
-		}
-		
-		else if(password.hashCode() == expectedPasswordHash)
+			StringTokenizer st = new StringTokenizer(input, DELIMITER);
+			String tmp = st.nextToken();                    //skip flag
+			String username = st.nextToken();
+			String password = st.nextToken();
+			System.out.println(input);
+			int clientID = Integer.valueOf(st.nextToken());
+			Integer expectedPasswordHash = database.getPasswordHash(username, clientID);
+			
+			if (expectedPasswordHash == null)        //if the user does not exist
+			{
+				System.out.println("No such user");
+				return new PacketSender(from, LOGIN_NAK, DELIMITER);
+			} else if (password.hashCode() == expectedPasswordHash) {
+				System.out.println("Login accepted");
+				return new PacketSender(from, LOGIN_ACK);
+			} else {
+				System.out.println("Login denied");
+				//TODO add actual number of attempts left + block further log in attemtps for some time
+				return new PacketSender(from, LOGIN_NAK, DELIMITER);
+			}
+		} catch(Exception e)
 		{
-			System.out.println("Login accepted");
-			return new PacketSender(from, LOGIN_ACK);
+			e.printStackTrace();
+			FAILSAFE_PACKET.recipientAddress = from;
+			FAILSAFE_PACKET.payload+=("|"+LOGIN_NAK);
+			return FAILSAFE_PACKET;
 		}
-		else
-		{
-			System.out.println("Login denied");
-			//TODO add actual number of attempts left + block further log in attemtps for some time
-			return new PacketSender(from, LOGIN_NAK, "4");
-		}
-		
 	}
-	
 	public PacketSender register(String input, InetAddress from)
 	{
-		StringTokenizer st = new StringTokenizer(input, DELIMITER);
-		String tmp = st.nextToken();					//skip flag
-		String username = st.nextToken();
-		String password = st.nextToken();
-		
-		System.out.println("Registering " + tmp + " " + username + " " + password);
-		//TODO write own hash function
-		int passwordHash = password.hashCode();
-		
-		int assignedID = database.registerClient(username, passwordHash, from.toString());	//add client to the database
-		
-		if(assignedID == -1)																//registration failed, most likely because username is taken
+		try
 		{
-			return new PacketSender(from, REGISTRATION_NAK, username);
+			StringTokenizer st = new StringTokenizer(input, DELIMITER);
+			String tmp = st.nextToken();                    //skip flag
+			String username = st.nextToken();
+			String name = st.nextToken();
+			String password = st.nextToken();
+			System.out.println("Registering " + tmp + " " + username + " |" + name + " " + password);
+			
+			//TODO write own hash function
+			int passwordHash = password.hashCode();
+			
+			Integer assignedID = database.register(username, name, Integer.parseInt(password));    //add client to the database
+			
+			if (assignedID == -2)                                                                //registration failed, most likely because username is taken
+			{
+				return new PacketSender(from, REGISTRATION_NAK, username);
+			}
+			else if(assignedID == -1)
+			{
+				FAILSAFE_PACKET.recipientAddress = from;
+				FAILSAFE_PACKET.payload+=("|"+REGISTRATION_NAK);
+				return FAILSAFE_PACKET;
+			}
+			else
+			{
+				return new PacketSender(from, REGISTRATION_ACK, String.valueOf(assignedID));
+			}
+		}catch(Exception e)
+		{
+			e.printStackTrace();
+			FAILSAFE_PACKET.recipientAddress = from;
+			FAILSAFE_PACKET.payload+=("|"+REGISTRATION_NAK);
+			return FAILSAFE_PACKET;
 		}
-		else
+	}
+	public PacketSender receivePacket(String input, InetAddress from)		//for debugging, a basic echo operation
+	{
+		return new PacketSender(from, input);
+	}
+
+	public PacketSender friendOperation(String input, InetAddress from)
+	{
+		try
 		{
-			addClient(username, assignedID, from);                                          //add client to cached routing table
-			return new PacketSender(from,  REGISTRATION_ACK, String.valueOf(assignedID));
+			StringTokenizer st = new StringTokenizer(input, DELIMITER);
+			String tmp = st.nextToken();                    //skip flag
+			String username = st.nextToken();
+			String password = st.nextToken();
+			System.out.println(input);
+			int clientID = Integer.valueOf(st.nextToken());
+			Integer expectedPasswordHash = database.getPasswordHash(username, clientID);
+			
+			if (expectedPasswordHash == null)        //if the user does not exist
+			{
+				System.out.println("No such user");
+				return new PacketSender(from, LOGIN_NAK, DELIMITER);
+			} else if (password.hashCode() == expectedPasswordHash) {
+				System.out.println("Login accepted");
+				return new PacketSender(from, LOGIN_ACK);
+			} else {
+				System.out.println("Login denied");
+				//TODO add actual number of attempts left + block further log in attemtps for some time
+				return new PacketSender(from, LOGIN_NAK, DELIMITER);
+			}
+		} catch(Exception e)
+		{
+			e.printStackTrace();
+			FAILSAFE_PACKET.recipientAddress = from;
+			FAILSAFE_PACKET.payload+=("|"+INTERNAL_ERROR);
+			return FAILSAFE_PACKET;
 		}
 	}
 	
-	public PacketSender receiveMessage(String input, InetAddress from)
-	{
-		System.out.println("Received message " + input);
-		Packet msg = new Packet(input);   //at this point we know senderID and recipientName
-		
-		
-		InetAddress recipientAddress = getAddress(msg.getRecipientName());
-		PacketSender ms = new PacketSender(recipientAddress, MESSAGE_FLAG, String.valueOf(msg.getSenderID()), msg.getRecipientName(), msg.getMessageText());
-		if(recipientAddress == null)    //if the client is not in the cached routing table, check the database
-		{
-			ms.setNeedsSending(false);  //recipient is currently unknown to the system, store the message and send it later
-		}
-		return ms;
-	}
-	public PacketSender receivePacket(String input, InetAddress from)//for debugging, a basic echo operation
-	{
-		return  new PacketSender(from, input);
-	}
+	
 }

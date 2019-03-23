@@ -16,6 +16,6 @@ public class ReceiveMessageOperation implements ClientInteraction
 	@Override
 	public PacketSender execute()
 	{
-		return SessionKeeper.INSTANCE.receiveMessage(userInput, from);
+		return SessionKeeper.INSTANCE.receivePacket(userInput, from);
 	}
 }
