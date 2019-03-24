@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.*;
 
+
 public class Server
 {
 	private ServerSocket serverSocket;
@@ -48,25 +49,19 @@ public class Server
 				ms = x.executeOperation(new EchoMessageOperation("WOOOHOO", InetAddress.getByName("10.53.142.162")));
 				ms.send();
 				System.out.println("SENT");
-//				switch (flag)
-//				{
-//					case 1:
-//						ms = x.executeOperation(new LoginOperation(input, receivingSocket.getInetAddress()));
-//						break;
-//					case 2:
-//						ms  = x.executeOperation(new RegistrationOperation(input, receivingSocket.getInetAddress()));
-//						break;
-//					case 5:
-//						ms = x.executeOperation(new ReceiveMessageOperation(input, receivingSocket.getInetAddress()));
-//						break;
-//					default:
-//						System.out.println("What is " + flag);
-//						ms = new PacketSender(InetAddress.getByName("127.0.0.1"),"error");
-//				}
-//				if(ms.needsSending)
-//				{
-//					ms.send();
-//				}
+				String flag = String.valueOf(input.charAt(0));
+				//cant use a switch statement, thats the way string switching works
+				
+				if(flag.equals(Constants.LOGIN_REQ))
+						ms = x.executeOperation(new LoginOperation(input, receivingSocket.getInetAddress()));
+				
+				else if(flag.equals(Constants.REGISTRATION_REQ))
+						ms  = x.executeOperation(new RegistrationOperation(input, receivingSocket.getInetAddress()));
+				
+				else if(flag.equals(Constants.FRIEND_ADD) || flag.equals(Constants.FRIEND_ACK) || flag.equals(Constants.FRIEND_NAK) || flag.equals(Constants.FRIEND_DEL))
+						ms = x.executeOperation(new FriendOperation(input, receivingSocket.getInetAddress()));
+				else
+						ms = new PacketSender(InetAddress.getByName("127.0.0.1"),"error");
 				
 			}
 		}catch(Exception e)
@@ -74,6 +69,7 @@ public class Server
 			e.printStackTrace();
 		}
 	}
+	
 	private static String bufferedReaderToString(BufferedReader br) throws IOException
 	{
 		StringBuilder sb = new StringBuilder();

@@ -19,7 +19,7 @@ class PacketSender
 		for(String s : contents)
 		{
 			sb.append(s);
-			sb.append(SessionKeeper.INSTANCE.DELIMITER);
+			sb.append(Constants.DELIMITER);
 		}
 		payload = sb.toString();
 	}
