@@ -9,7 +9,7 @@ abstract class DatabaseAuthentifacationOpers
 		int clientID = -1;           																	//ID assigned to this client
 		final String uniquenessQuery = "select * from CLIENTS where USERNAME=?;";	   					//determine if the username is taken
 		final String insertOperation = "insert into CLIENTS(USERNAME, NAME, PASSWORD) values(?, ?, ?)";	//if username is free, update the records
-		final String createScheduleTableOperation = "create table ?";
+		final String createScheduleTableOperation = "create table " + username + "Schedule";
 		
 		try (Connection dbConnection = connectionPool.getConnection();
 			 PreparedStatement uniquenessQueryStatement = dbConnection.prepareStatement(uniquenessQuery);
@@ -22,15 +22,15 @@ abstract class DatabaseAuthentifacationOpers
 			insertStatement.setString(2, name);
 			insertStatement.setInt(3, passwordHash);
 			
-			createScheduleStatement.setString(1, username);
 			
 			ResultSet clientsWithGivenUsername = uniquenessQueryStatement.executeQuery();
 			if(clientsWithGivenUsername.next())		//username taken
 			{
 				clientsWithGivenUsername.close();
+				System.out.println("Username taken!");
 				return -2;
 			}
-			
+			System.out.println("Creating user");
 			insertStatement.executeUpdate();
 			ResultSet rsInsert = insertStatement.getGeneratedKeys();
 			if (rsInsert.next())
@@ -39,9 +39,10 @@ abstract class DatabaseAuthentifacationOpers
 			}
 			rsInsert.close();
 			//now create a schedule table just for this user
-			createScheduleStatement.executeUpdate();
+			createScheduleStatement.execute();
 		}catch(SQLException e)
 		{
+			e.printStackTrace();
 			return -1;
 		}
 		System.out.println("Assigned:" + clientID);
@@ -54,7 +55,7 @@ abstract class DatabaseAuthentifacationOpers
 		final String query = "select * from CLIENTS where USERNAME=?;";
 		
 		try (Connection dbConnection = connectionPool.getConnection();
-			 PreparedStatement preparedStatement = dbConnection.prepareStatement(query);)
+			 PreparedStatement preparedStatement = dbConnection.prepareStatement(query))
 		{
 			preparedStatement.setString(1, username);
 //			preparedStatement.setInt(2, clientID);

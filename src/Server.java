@@ -1,6 +1,11 @@
+
 import java.io.*;
 import java.net.*;
 
+/**
+ * Copyright 2019, Vladimir Ustimenko, All rights reserved
+ *
+ */
 
 public class Server
 {
@@ -24,77 +29,64 @@ public class Server
 	private void listen()
 	{
 		ClientOperationsExecutor x = new ClientOperationsExecutor();
-		try
+		while(true)
 		{
-			receivingSocket = serverSocket.accept();
-			receivingSocket.setTcpNoDelay(true);
-			while(true)
+			try
 			{
 				System.out.println("Awaiting input");
-				System.out.println(receivingSocket.getInetAddress() + " " + receivingSocket.getLocalAddress() + " " + receivingSocket.getPort() + " " + receivingSocket .getLocalPort());
-				Thread.sleep(1000);									//DEBUG ONLY, emulate network latency
-				////////////
-				InputStream is = receivingSocket.getInputStream();
-				InputStreamReader isr = new InputStreamReader(is);
-				BufferedReader br = new BufferedReader(isr);
+				receivingSocket = serverSocket.accept();
+				receivingSocket.setTcpNoDelay(true);
+				System.out.println(receivingSocket.getInetAddress() + " " + receivingSocket.getLocalAddress() + " " + receivingSocket.getPort() + " " + receivingSocket.getLocalPort());
+				Thread.sleep(1000);                                    //DEBUG ONLY, emulate network latency
 				
-				String input = bufferedReaderToString(br);
-				if(!input.isEmpty())
-					System.out.println(input);
-//				int flag = Character.getNumericValue(input.charAt(0));
-				PacketSender ms;//the actual response message is crafted during the database operation
-
-				//TODO implement actual operations
-				
-				ms = x.executeOperation(new EchoMessageOperation("WOOOHOO", InetAddress.getByName("10.53.142.162")));
-				ms.send();
-				System.out.println("SENT");
-				String flag = String.valueOf(input.charAt(0));
-				//cant use a switch statement, thats the way string switching works
-				
+				System.out.println("Received");
+				String input = bufferedReaderToString(new BufferedReader(new InputStreamReader(receivingSocket.getInputStream())));
+				System.out.println("|" + input + "|");
+				String flag = input.substring(0, 1);
+				PacketSender packetSender;		//the actual response message is crafted during the database operation
 				if(flag.equals(Constants.LOGIN_REQ))
-						ms = x.executeOperation(new LoginOperation(input, receivingSocket.getInetAddress()));
-				
+				{
+					packetSender = x.executeOperation(new LoginOperation(input, receivingSocket.getInetAddress()));
+				}
 				else if(flag.equals(Constants.REGISTRATION_REQ))
-						ms  = x.executeOperation(new RegistrationOperation(input, receivingSocket.getInetAddress()));
-				
-				else if(flag.equals(Constants.FRIEND_ADD) || flag.equals(Constants.FRIEND_ACK) || flag.equals(Constants.FRIEND_NAK) || flag.equals(Constants.FRIEND_DEL))
-						ms = x.executeOperation(new FriendOperation(input, receivingSocket.getInetAddress()));
+				{
+					packetSender  = x.executeOperation(new RegistrationOperation(input, receivingSocket.getInetAddress()));
+				}
+				else if(flag.equals(Constants.FRIEND_ADD) || flag.equals(Constants.FRIEND_ACK) || flag.equals(Constants.FRIEND_NAK)
+						|| flag.equals(Constants.FRIEND_DEL) || flag.equals(Constants.FRIEND_REQ_CANC))
+				{
+					packetSender = x.executeOperation(new FriendOperation(input, receivingSocket.getInetAddress()));
+				}
+				//TODO schedule operation
 				else
-						ms = new PacketSender(InetAddress.getByName("127.0.0.1"),"error");
+				{
+					System.out.println("What is " + flag);
+					packetSender = new PacketSender(InetAddress.getByName("127.0.0.1"), "error");
+				}
 				
+				if(packetSender != null && packetSender.needsSending)
+					packetSender.send();
+				
+				
+			} catch(Exception e)
+			{
+				e.printStackTrace();
 			}
-		}catch(Exception e)
-		{
-			e.printStackTrace();
 		}
 	}
 	
-	private static String bufferedReaderToString(BufferedReader br) throws IOException
+	private static String bufferedReaderToString(BufferedReader br) throws Exception
 	{
 		StringBuilder sb = new StringBuilder();
 		int c;
-		while((c=br.read()) != -1 && c!='~')
+		while((c=br.read()) != -1)
 		{
 			sb.append((char)c);
 		}
-		System.out.println("&&");
 		return sb.toString();
 	}
-	private static String foobar(InputStream inputStream)  throws IOException
-	{
-		ByteArrayOutputStream result = new ByteArrayOutputStream();
-		byte[] buffer = new byte[1024];
-		int length;
-		if(inputStream.available()==0)
-		while ((length = inputStream.read(buffer)) != -1) {
-			result.write(buffer, 0, length);
-		}
-		System.out.println("WOOW");
-		return result.toString("UTF-8");
-	}
 	
-	public static void main(String[] args)
+	public static void main(String[] args) throws Exception
 	{
 		Server server = new Server();
 		server.listen();

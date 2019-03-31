@@ -1,15 +1,12 @@
 import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.concurrent.ConcurrentHashMap;
 
 public enum SessionKeeper
 {
 	INSTANCE;
 	static Database database = new Database();
 	
-	PacketSender FAILSAFE_PACKET = new PacketSender(null, Constants.INTERNAL_ERROR);;
+	
 	public void init()
 	{
 		//TODO strictly for debugging
@@ -32,21 +29,24 @@ public enum SessionKeeper
 			if (expectedPasswordHash == null)        //if the user does not exist
 			{
 				System.out.println("No such user");
-				return new PacketSender(from, Constants.LOGIN_NAK, Constants.DELIMITER);
-			} else if (password.hashCode() == expectedPasswordHash) {
+				return new PacketSender(from, Constants.LOGIN_NAK);
+				
+			}
+			else if (password.hashCode() == expectedPasswordHash)
+			{
 				System.out.println("Login accepted");
 				return new PacketSender(from, Constants.LOGIN_ACK);
-			} else {
+			}
+			else
+			{
 				System.out.println("Login denied");
 				//TODO add actual number of attempts left + block further log in attemtps for some time
-				return new PacketSender(from, Constants.LOGIN_NAK, Constants.DELIMITER);
+				return new PacketSender(from, Constants.LOGIN_NAK);
 			}
 		} catch(Exception e)
 		{
 			e.printStackTrace();
-			FAILSAFE_PACKET.recipientAddress = from;
-			FAILSAFE_PACKET.payload+=("|"+ Constants.LOGIN_NAK);
-			return FAILSAFE_PACKET;
+			return null;
 		}
 	}
 	public PacketSender register(String input, InetAddress from)
@@ -63,7 +63,7 @@ public enum SessionKeeper
 			//TODO write own hash function
 			int passwordHash = password.hashCode();
 			
-			Integer assignedID = database.register(username, name, Integer.parseInt(password));    //add client to the database
+			Integer assignedID = database.register(username, name, password.hashCode());    //add client to the database
 			
 			if (assignedID == -2)                                                                //registration failed, most likely because username is taken
 			{
@@ -71,9 +71,7 @@ public enum SessionKeeper
 			}
 			else if(assignedID == -1)
 			{
-				FAILSAFE_PACKET.recipientAddress = from;
-				FAILSAFE_PACKET.payload+=("|"+Constants.REGISTRATION_NAK);
-				return FAILSAFE_PACKET;
+				return null;
 			}
 			else
 			{
@@ -82,14 +80,12 @@ public enum SessionKeeper
 		}catch(Exception e)
 		{
 			e.printStackTrace();
-			FAILSAFE_PACKET.recipientAddress = from;
-			FAILSAFE_PACKET.payload+=("|"+Constants.REGISTRATION_NAK);
-			return FAILSAFE_PACKET;
+			return null;
 		}
 	}
 	public PacketSender receivePacket(String input, InetAddress from)		//for debugging, a basic echo operation
 	{
-		return new PacketSender(from, input);
+		return new PacketSender(from, Constants.DATA_RECEIVED_ACK, input);
 	}
 
 	public PacketSender friendOperation(String input, InetAddress from)
@@ -105,26 +101,31 @@ public enum SessionKeeper
 			
 			
 			if(flag.equals(Constants.FRIEND_ADD))
+			{
 				addFriend(ownUsername, friendUsername);
+			}
 			else if(flag.equals(Constants.FRIEND_DEL))
+			{
 				removeFriend(ownUsername, friendUsername);
+			}
 			else if(flag.equals(Constants.FRIEND_ACK))
+			{
 				acceptFriendRequest(ownUsername, friendUsername);
+			}
 			else if(flag.equals(Constants.FRIEND_NAK))
+			{
 				declineFriendRequest(ownUsername, friendUsername);
+			}
 			else if(flag.equals(Constants.FRIEND_REQ_CANC))
+			{
 				cancelFriendRequest(ownUsername, friendUsername);
-			else
-				return FAILSAFE_PACKET;
-			
+			}
+			return null;
 		} catch(Exception e)
 		{
 			e.printStackTrace();
-			FAILSAFE_PACKET.recipientAddress = from;
-			FAILSAFE_PACKET.payload+=("|"+Constants.INTERNAL_ERROR);
-			return FAILSAFE_PACKET;
+			return null;
 		}
-		return null;
 	}
 	void addFriend(String user, String friendToAdd)		//'user' sends a friend request to 'friend', user status = FRIEND_REQUEST_SENT, friendToAdd status = FRIEND_REQUEST_RECEIVED
 	{

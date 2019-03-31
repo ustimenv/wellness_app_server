@@ -54,6 +54,7 @@ class Database
 	
 	void init()
 	{
+		//TODO add foreign key in friends
 		final String sql = 	"drop table if exists CLIENTS;" +
 							"create table CLIENTS(" +
 							"CLIENT_ID int auto_increment primary key," +
@@ -70,7 +71,7 @@ class Database
 							"STATUS int default 0);";
 		
 		try (Connection dbConnection = connectionPool.getConnection();
-			 PreparedStatement statement = dbConnection.prepareStatement(sql);)
+			 PreparedStatement statement = dbConnection.prepareStatement(sql))
 		{
 			statement.executeUpdate();
 		} catch (SQLException e)
@@ -90,7 +91,7 @@ class Database
 		String createTableStatement = "create table " + tableName+";";
 		
 		try(Connection dbConnection = connectionPool.getConnection();
-			Statement statement = dbConnection.createStatement();)
+			Statement statement = dbConnection.createStatement())
 		{
 			statement.executeUpdate(createTableStatement);
 		} catch (SQLException e)

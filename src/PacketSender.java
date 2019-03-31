@@ -8,7 +8,7 @@ import java.net.Socket;
 
 class PacketSender
 {
-	boolean needsSending = true;			//if the IP address of the client is not known store the message instead of sending it immediatedly
+	boolean needsSending = true;
 	String payload = "";
 	InetAddress recipientAddress;
 	
@@ -21,6 +21,7 @@ class PacketSender
 			sb.append(s);
 			sb.append(Constants.DELIMITER);
 		}
+		sb.append(Constants.END);
 		payload = sb.toString();
 	}
 	
@@ -36,9 +37,5 @@ class PacketSender
 		{
 			e.printStackTrace();
 		}
-	}
-	public void setNeedsSending(boolean needsSending)
-	{
-		this.needsSending = needsSending;
 	}
 }

@@ -141,7 +141,7 @@ abstract public class DatabaseFriendOpers
 
 		try (Connection dbConnection = connectionPool.getConnection();
 			 PreparedStatement updateStatement1 = dbConnection.prepareStatement(updateOper1);
-			 PreparedStatement updateStatement2 = dbConnection.prepareStatement(updateOper2);)
+			 PreparedStatement updateStatement2 = dbConnection.prepareStatement(updateOper2))
 		{
 			updateStatement1.setInt(1, Constants.FRIEND_NORMAL);
 			updateStatement1.setInt(2, userID);
@@ -205,7 +205,7 @@ abstract public class DatabaseFriendOpers
 		HashMap<Integer, Integer> friends = new HashMap<>();
 		
 		try (Connection dbConnection = connectionPool.getConnection();
-			 PreparedStatement getFriendsStatement = dbConnection.prepareStatement(getFriends);)
+			 PreparedStatement getFriendsStatement = dbConnection.prepareStatement(getFriends))
 		{
 			getFriendsStatement.setInt(1, userID);
 			
